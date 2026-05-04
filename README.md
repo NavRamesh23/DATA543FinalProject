@@ -42,7 +42,7 @@ This project analyzes 1,500+ real-world CVEs from the CISA KEV catalog to answer
 - **Random Forest** achieved **96.9%** accuracy — outperforming LR on the same data and split
 - Majority class baseline (always guessing Initial Access) would score **59.0%** — both models significantly exceed this
 - Initial Access is the most common tactic, making up ~58% of all KEV entries
-- **ARIMA(2,1,2)** forecast predicts approximately **[X]** new KEV entries over the next 12 months
+- **ARIMA(2,1,2)** forecast predicts approximately **226 new KEV entries** over the next 12 months (Apr 2026 – Mar 2027), averaging ~19 per month
 - **Monte Carlo simulation** (10,000 runs) estimates annual cyber exposure:
   - Best case (10th pct): **$56.84M**
   - Expected (mean): **$71.78M**
@@ -112,3 +112,19 @@ A model that always guesses Initial Access would still hit 59% — the majority 
 Both models beat this by a significant margin, but results should be interpreted with
 this imbalance in mind. Future work could apply SMOTE or class weighting to get a
 fairer evaluation across all 4 tactic classes.
+
+---
+
+## Limitations & Challenges
+
+- Over a third of KEV entries could not be mapped to an ATT&CK tactic due to missing
+  CWE data in NVD, which reduced the usable dataset size and may bias results toward
+  vulnerability types that are better documented
+- The ARIMA confidence interval is wide because CISA occasionally adds large batches
+  of CVEs at once, making exact monthly counts hard to predict precisely — the point
+  estimate of ~19/month is reliable but the range is broad
+- The financial risk estimates are modeled rather than observed — real breach cost data
+  tied to specific CVEs would produce more precise results than the IBM average baseline
+- The dataset only covers confirmed exploited vulnerabilities (KEVs), not the full CVE
+  universe — this is a strength for signal quality but means the models may not
+  generalize to unconfirmed or theoretical vulnerabilities
