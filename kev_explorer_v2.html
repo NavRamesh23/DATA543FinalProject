@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KEV ATT&CK Explorer</title>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet">
+<style>
+/* ── Tokens ── */
+:root {
+  --bg:#f7f6f2;--surface:#f9f8f5;--surface2:#fbfbf9;
+  --border:#d4d1ca;--divider:#dcd9d5;
+  --text:#28251d;--muted:#7a7974;--faint:#bab9b4;
+  --primary:#01696f;--shadow:0 4px 12px rgba(40,37,29,.08);
+  --font:'Satoshi',system-ui,sans-serif;
+  --radius:.75rem;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100dvh;font-size:15px;}
+/* ── Layout ── */
+.topbar{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);
+  padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.topbar h1{font-size:1rem;font-weight:700;}
+.topbar p{font-size:.75rem;color:var(--muted);}
+.nav{display:flex;gap:.25rem;padding:.5rem 1.5rem;background:var(--surface);border-bottom:1px solid var(--divider);overflow-x:auto;}
+.tab{background:none;border:none;padding:.45rem .9rem;border-radius:.5rem;cursor:pointer;
+  font-size:.8rem;font-family:var(--font);color:var(--muted);white-space:nowrap;transition:all .15s;}
+.tab:hover{background:var(--surface2);color:var(--text);}
+.tab.active{background:#01696f;color:#fff;font-weight:600;}
+.page{display:none;padding:1.5rem;max-width:1200px;margin:0 auto;}
+.page.active{display:block;}
+/* ── Cards ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.25rem;box-shadow:var(--shadow);margin-bottom:1.25rem;}
+.card-title{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1rem;}
+.callout{background:#e8f4f5;border:1px solid #b0d5d9;border-radius:var(--radius);
+  padding:.9rem 1.1rem;margin-bottom:1.25rem;font-size:.85rem;line-height:1.65;}
+.callout strong{color:#01696f;}
+.callout.warn{background:#fef5e7;border-color:#f5c842;}
+.callout.warn strong{color:#b07a00;}
+/* ── KPIs ── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.25rem;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.1rem;text-align:center;box-shadow:var(--shadow);}
+.kpi .v{font-size:2rem;font-weight:700;color:#01696f;}
+.kpi .l{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.2rem;}
+/* ── Bar Charts ── */
+.chart-block{margin-bottom:.5rem;}
+.chart-title{font-weight:700;font-size:.95rem;margin-bottom:.25rem;}
+.chart-sub{font-size:.78rem;color:var(--muted);margin-bottom:.9rem;max-width:70ch;line-height:1.5;}
+.bar-chart{display:flex;flex-direction:column;gap:.45rem;}
+.bar-row{display:grid;grid-template-columns:180px 1fr;align-items:center;gap:.75rem;}
+.bar-label{font-size:.78rem;color:var(--muted);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{position:relative;height:22px;background:var(--surface2);border-radius:4px;display:flex;align-items:center;}
+.bar-fill{height:100%;border-radius:4px;transition:width .4s ease;min-width:2px;}
+.bar-val{font-size:.72rem;font-weight:600;color:var(--text);position:absolute;right:6px;}
+/* ── Grouped bars ── */
+.grouped-row{display:grid;grid-template-columns:180px 1fr;gap:.75rem;margin-bottom:.6rem;align-items:start;}
+.grouped-label{font-size:.78rem;color:var(--muted);text-align:right;padding-top:2px;}
+.grouped-bars{display:flex;flex-direction:column;gap:3px;}
+.g-bar-wrap{display:flex;align-items:center;height:14px;gap:6px;}
+.g-bar{height:100%;border-radius:3px;min-width:2px;}
+.g-val{font-size:.68rem;color:var(--muted);}
+.legend-row{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.9rem;font-size:.78rem;color:var(--muted);align-items:center;}
+.leg-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:.3rem;}
+/* ── Heatmap ── */
+.hm-table{border-collapse:separate;border-spacing:3px;font-size:.72rem;}
+.hm-corner{min-width:140px;text-align:right;padding:.3rem .5rem;color:var(--muted);font-size:.7rem;}
+.hm-head{writing-mode:vertical-rl;transform:rotate(180deg);padding:.4rem .2rem;min-width:36px;
+  color:var(--muted);font-weight:600;font-size:.68rem;white-space:nowrap;}
+.hm-row-label{text-align:right;padding:.3rem .5rem;color:var(--muted);font-weight:600;font-size:.72rem;white-space:nowrap;}
+.hm-cell{text-align:center;padding:.3rem .2rem;border-radius:4px;min-width:36px;font-weight:600;font-size:.72rem;}
+/* ── Tech table ── */
+.tech-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+.tech-table th{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--border);
+  font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+.tech-table td{padding:.45rem .6rem;border-bottom:1px solid var(--divider);}
+.tech-table tr:hover td{background:var(--surface2);}
+.tech-id{font-weight:700;white-space:nowrap;}
+.tech-name{color:var(--text);}
+.tech-count{white-space:nowrap;font-variant-numeric:tabular-nums;}
+.mini-bar{display:inline-block;height:6px;border-radius:3px;vertical-align:middle;margin-left:.4rem;opacity:.5;}
+/* ── Grid ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;}
+/* ── Section heading ── */
+.sec-title{font-size:1.2rem;font-weight:700;margin-bottom:.3rem;}
+.sec-sub{font-size:.85rem;color:var(--muted);margin-bottom:1.25rem;max-width:70ch;line-height:1.6;}
+/* ── Responsive ── */
+@media(max-width:768px){
+  .kpi-row,.grid2,.grid3{grid-template-columns:1fr;}
+  .bar-row,.grouped-row{grid-template-columns:120px 1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <h1>KEV × ATT&CK Explorer</h1>
+    <p>CISA Known Exploited Vulnerabilities mapped to MITRE ATT&CK — 1,539 CVEs</p>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="tab active" onclick="show('p-overview',this)">📊 Overview</button>
+  <button class="tab" onclick="show('p-exploit',this)">🎯 Exploitation</button>
+  <button class="tab" onclick="show('p-primary',this)">⚡ Primary Impact</button>
+  <button class="tab" onclick="show('p-secondary',this)">🔁 Secondary Impact</button>
+  <button class="tab" onclick="show('p-compare',this)">📈 Compare All 3</button>
+  <button class="tab" onclick="show('p-heatmap',this)">🔥 Heatmap</button>
+  <button class="tab" onclick="show('p-techniques',this)">🔍 Top Techniques</button>
+  <button class="tab" onclick="show('p-timeline',this)">📅 Timeline</button>
+  <button class="tab" onclick="show('p-credential',this)">🔑 Credential Access</button>
+</div>
+
+<!-- PAGE: Overview -->
+<div id="p-overview" class="page active">
+  <div class="sec-title">Dataset Overview</div>
+  <div class="sec-sub">KEV is only CVEs confirmed actively exploited in the wild — a tiny, high-priority fraction of all published CVEs.</div>
+  <div class="kpi-row">
+    <div class="kpi"><div class="v">1,539</div><div class="l">Total KEV CVEs</div></div>
+    <div class="kpi"><div class="v">532</div><div class="l">Mapped to ATT&CK</div></div>
+    <div class="kpi"><div class="v">14</div><div class="l">ATT&CK Tactics</div></div>
+    <div class="kpi"><div class="v">2021–2026</div><div class="l">Years of Data</div></div>
+  </div>
+  <div class="callout">
+    <strong>What this dataset is:</strong> Every CVE here was not just discovered — it was <strong>actively used by real attackers</strong>.
+    CISA adds a CVE to KEV only after confirming real exploitation. This makes KEV the highest-signal threat dataset for defenders.<br><br>
+    <strong>What it is NOT:</strong> This is not all CVEs. There are 200,000+ total CVEs ever published; KEV contains ~1,539 (~0.8%).
+    All analysis here reflects real-world attacker behavior, not theoretical risk.
+  </div>
+  <div class="callout warn">
+    <strong>⚠️ "For one year" caveat:</strong> When filtering to one year (e.g., 2024), you are seeing CVEs that CISA <em>confirmed were being exploited</em> that year.
+    The actual CVE may have been published years earlier. Always state: <em>"These are KEV CVEs confirmed exploited in [year], not all CVEs published that year."</em>
+  </div>
+  
+    <div class="chart-block">
+      <div class="chart-title">Tactics Overview — Peak CVE Count Across All Mapping Types</div>
+      <div class='chart-sub'>Shows which tactics appear most across exploitation, primary, and secondary mappings</div>
+      <div class="bar-chart">
+        <div class="bar-row">
+          <div class="bar-label">Reconnaissance</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:0.4%;background:#9b59b6;"></div>
+            <span class="bar-val">1</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Resource Development</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:2.5%;background:#7d3fb5;"></div>
+            <span class="bar-val">6</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Initial Access</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:100.0%;background:#4f98a3;"></div>
+            <span class="bar-val">237</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Execution</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:75.1%;background:#da7101;"></div>
+            <span class="bar-val">178</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Persistence</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:17.3%;background:#d19900;"></div>
+            <span class="bar-val">41</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Privilege Escalation</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:39.7%;background:#a86fdf;"></div>
+            <span class="bar-val">94</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Defense Evasion</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:24.9%;background:#6daa45;"></div>
+            <span class="bar-val">59</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Credential Access</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:8.0%;background:#5591c7;"></div>
+            <span class="bar-val">19</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Discovery</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:6.8%;background:#bb653b;"></div>
+            <span class="bar-val">16</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Lateral Movement</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:2.1%;background:#d163a7;"></div>
+            <span class="bar-val">5</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Collection</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:11.4%;background:#4f8a5a;"></div>
+            <span class="bar-val">27</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Command and Control</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:10.5%;background:#7a39bb;"></div>
+            <span class="bar-val">25</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Exfiltration</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:5.9%;background:#a13544;"></div>
+            <span class="bar-val">14</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Impact</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:14.8%;background:#666;"></div>
+            <span class="bar-val">35</span>
+          </div>
+        </div></div>
+    </div>
+</div>
+
+<!-- PAGE: Exploitation -->
+<div id="p-exploit" class="page">
+  <div class="sec-title">Exploitation Technique</div>
+  <div class="sec-sub">How the attacker used the CVE to gain a foothold or move — the "how did they get in/move" mapping.</div>
+  <div class="callout"><strong>Dominant pattern:</strong> Initial Access (237 CVEs) dominates exploitation — most KEV CVEs are used to get into a system via public-facing applications, phishing, or valid account abuse. Execution (95) and Privilege Escalation (94) are next — meaning many CVEs are used to run code or elevate permissions once inside.</div>
+  <div class="card">
+    <div class="chart-block">
+      <div class="chart-title">Exploitation Technique — CVEs per Tactic</div>
+      <div class='chart-sub'>How attackers used each KEV CVE to gain a foothold or move within a system</div>
+      <div class="bar-chart">
+        <div class="bar-row">
+          <div class="bar-label">Reconnaissance</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:0.4%;background:#9b59b6;"></div>
+            <span class="bar-val">1</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Resource Development</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:0.0%;background:#7d3fb5;"></div>
+            <span class="bar-val">0</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Initial Access</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:100.0%;background:#4f98a3;"></div>
+            <span class="bar-val">237</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Execution</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:40.1%;background:#da7101;"></div>
+            <span class="bar-val">95</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Persistence</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:17.3%;background:#d19900;"></div>
+            <span class="bar-val">41</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Privilege Escalation</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:39.7%;background:#a86fdf;"></div>
+            <span class="bar-val">94</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Defense Evasion</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:24.9%;background:#6daa45;"></div>
+            <span class="bar-val">59</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Credential Access</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:2.1%;background:#5591c7;"></div>
+            <span class="bar-val">5</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Discovery</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:0.0%;background:#bb653b;"></div>
+            <span class="bar-val">0</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Lateral Movement</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:0.0%;background:#d163a7;"></div>
+            <span class="bar-val">0</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Collection</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:0.0%;background:#4f8a5a;"></div>
+            <span class="bar-val">0</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Command and Control</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:0.0%;background:#7a39bb;"></div>
+            <span class="bar-val">0</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Exfiltration</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:0.0%;background:#a13544;"></div>
+            <span class="bar-val">0</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Impact</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:0.0%;background:#666;"></div>
+            <span class="bar-val">0</span>
+          </div>
+        </div></div>
+    </div></div>
+</div>
+
+<!-- PAGE: Primary Impact -->
+<div id="p-primary" class="page">
+  <div class="sec-title">Primary Impact</div>
+  <div class="sec-sub">The immediate result of triggering the CVE — what happens first after exploitation.</div>
+  <div class="callout"><strong>Key shift:</strong> Execution (178) now dominates — even when attackers use Initial Access to get in, the immediate next step is almost always running code. Privilege Escalation (51) and Collection (27) are also common first moves. Impact (destruction/ransomware) appears here too (19) — some CVEs cause direct damage immediately.</div>
+  <div class="card">
+    <div class="chart-block">
+      <div class="chart-title">Primary Impact — CVEs per Tactic</div>
+      <div class='chart-sub'>The immediate result of the exploitation — what happened right after the CVE was triggered</div>
+      <div class="bar-chart">
+        <div class="bar-row">
+          <div class="bar-label">Reconnaissance</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:0.6%;background:#9b59b6;"></div>
+            <span class="bar-val">1</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Resource Development</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:2.8%;background:#7d3fb5;"></div>
+            <span class="bar-val">5</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Initial Access</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:5.1%;background:#4f98a3;"></div>
+            <span class="bar-val">9</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Execution</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:100.0%;background:#da7101;"></div>
+            <span class="bar-val">178</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Persistence</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:9.6%;background:#d19900;"></div>
+            <span class="bar-val">17</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Privilege Escalation</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:28.7%;background:#a86fdf;"></div>
+            <span class="bar-val">51</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Defense Evasion</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:12.4%;background:#6daa45;"></div>
+            <span class="bar-val">22</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Credential Access</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:8.4%;background:#5591c7;"></div>
+            <span class="bar-val">15</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Discovery</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:4.5%;background:#bb653b;"></div>
+            <span class="bar-val">8</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Lateral Movement</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:0.6%;background:#d163a7;"></div>
+            <span class="bar-val">1</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Collection</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:15.2%;background:#4f8a5a;"></div>
+            <span class="bar-val">27</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Command and Control</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:14.0%;background:#7a39bb;"></div>
+            <span class="bar-val">25</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Exfiltration</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:1.1%;background:#a13544;"></div>
+            <span class="bar-val">2</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Impact</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:10.7%;background:#666;"></div>
+            <span class="bar-val">19</span>
+          </div>
+        </div></div>
+    </div></div>
+</div>
+
+<!-- PAGE: Secondary Impact -->
+<div id="p-secondary" class="page">
+  <div class="sec-title">Secondary Impact</div>
+  <div class="sec-sub">What attackers do next, further downstream — behaviors that follow the primary impact.</div>
+  <div class="callout"><strong>Key insight:</strong> Impact (35) becomes the top tactic in secondary mappings — destruction, ransomware, and system shutdown are the <em>final goal</em>, not the first step. Defense Evasion (24), Execution (22), and Collection (22) also appear — the attacker hides, runs more code, and gathers data before finishing.</div>
+  <div class="card">
+    <div class="chart-block">
+      <div class="chart-title">Secondary Impact — CVEs per Tactic</div>
+      <div class='chart-sub'>What attackers did next, downstream — later-stage behaviors following the primary impact</div>
+      <div class="bar-chart">
+        <div class="bar-row">
+          <div class="bar-label">Reconnaissance</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:2.9%;background:#9b59b6;"></div>
+            <span class="bar-val">1</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Resource Development</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:17.1%;background:#7d3fb5;"></div>
+            <span class="bar-val">6</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Initial Access</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:25.7%;background:#4f98a3;"></div>
+            <span class="bar-val">9</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Execution</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:62.9%;background:#da7101;"></div>
+            <span class="bar-val">22</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Persistence</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:40.0%;background:#d19900;"></div>
+            <span class="bar-val">14</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Privilege Escalation</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:45.7%;background:#a86fdf;"></div>
+            <span class="bar-val">16</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Defense Evasion</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:68.6%;background:#6daa45;"></div>
+            <span class="bar-val">24</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Credential Access</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:54.3%;background:#5591c7;"></div>
+            <span class="bar-val">19</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Discovery</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:45.7%;background:#bb653b;"></div>
+            <span class="bar-val">16</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Lateral Movement</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:14.3%;background:#d163a7;"></div>
+            <span class="bar-val">5</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Collection</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:62.9%;background:#4f8a5a;"></div>
+            <span class="bar-val">22</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Command and Control</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:51.4%;background:#7a39bb;"></div>
+            <span class="bar-val">18</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Exfiltration</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:40.0%;background:#a13544;"></div>
+            <span class="bar-val">14</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Impact</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:100.0%;background:#666;"></div>
+            <span class="bar-val">35</span>
+          </div>
+        </div></div>
+    </div></div>
+</div>
+
+<!-- PAGE: Compare -->
+<div id="p-compare" class="page">
+  <div class="sec-title">Side-by-Side Comparison — All 3 Mapping Types</div>
+  <div class="sec-sub">See how the same tactic shifts in frequency as attacks progress from exploitation to primary to secondary impact.</div>
+  <div class="callout">
+    <strong>Execution vs. Impact explained here:</strong> Execution (teal bar) is large in exploitation and primary impact — it's an early/mid-attack action. 
+    Impact (purple bar) is small early on but large in secondary impact — it's the <em>final stage</em>. This is the core difference.
+  </div>
+  <div class="card"><div class="chart-block"><div class="chart-title">Side-by-Side Comparison — All 3 Mapping Types</div><div class="chart-sub">Same tactic can appear in all three categories. Teal = Exploitation, Orange = Primary Impact, Purple = Secondary Impact</div><div class="legend-row"><span class="leg-dot" style="background:#4f98a3"></span>Exploitation &nbsp;&nbsp;<span class="leg-dot" style="background:#da7101"></span>Primary Impact &nbsp;&nbsp;<span class="leg-dot" style="background:#a86fdf"></span>Secondary Impact</div>
+    <div class="grouped-row">
+      <div class="grouped-label">Reconnaissance</div>
+      <div class="grouped-bars">
+        <div class="g-bar-wrap"><div class="g-bar" style="width:0.4%;background:#4f98a3"></div><span class="g-val">1</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:0.4%;background:#da7101"></div><span class="g-val">1</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:0.4%;background:#a86fdf"></div><span class="g-val">1</span></div>
+      </div>
+    </div>
+    <div class="grouped-row">
+      <div class="grouped-label">Resource Development</div>
+      <div class="grouped-bars">
+        <div class="g-bar-wrap"><div class="g-bar" style="width:0.0%;background:#4f98a3"></div><span class="g-val">0</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:2.1%;background:#da7101"></div><span class="g-val">5</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:2.5%;background:#a86fdf"></div><span class="g-val">6</span></div>
+      </div>
+    </div>
+    <div class="grouped-row">
+      <div class="grouped-label">Initial Access</div>
+      <div class="grouped-bars">
+        <div class="g-bar-wrap"><div class="g-bar" style="width:100.0%;background:#4f98a3"></div><span class="g-val">237</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:3.8%;background:#da7101"></div><span class="g-val">9</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:3.8%;background:#a86fdf"></div><span class="g-val">9</span></div>
+      </div>
+    </div>
+    <div class="grouped-row">
+      <div class="grouped-label">Execution</div>
+      <div class="grouped-bars">
+        <div class="g-bar-wrap"><div class="g-bar" style="width:40.1%;background:#4f98a3"></div><span class="g-val">95</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:75.1%;background:#da7101"></div><span class="g-val">178</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:9.3%;background:#a86fdf"></div><span class="g-val">22</span></div>
+      </div>
+    </div>
+    <div class="grouped-row">
+      <div class="grouped-label">Persistence</div>
+      <div class="grouped-bars">
+        <div class="g-bar-wrap"><div class="g-bar" style="width:17.3%;background:#4f98a3"></div><span class="g-val">41</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:7.2%;background:#da7101"></div><span class="g-val">17</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:5.9%;background:#a86fdf"></div><span class="g-val">14</span></div>
+      </div>
+    </div>
+    <div class="grouped-row">
+      <div class="grouped-label">Privilege Escalation</div>
+      <div class="grouped-bars">
+        <div class="g-bar-wrap"><div class="g-bar" style="width:39.7%;background:#4f98a3"></div><span class="g-val">94</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:21.5%;background:#da7101"></div><span class="g-val">51</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:6.8%;background:#a86fdf"></div><span class="g-val">16</span></div>
+      </div>
+    </div>
+    <div class="grouped-row">
+      <div class="grouped-label">Defense Evasion</div>
+      <div class="grouped-bars">
+        <div class="g-bar-wrap"><div class="g-bar" style="width:24.9%;background:#4f98a3"></div><span class="g-val">59</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:9.3%;background:#da7101"></div><span class="g-val">22</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:10.1%;background:#a86fdf"></div><span class="g-val">24</span></div>
+      </div>
+    </div>
+    <div class="grouped-row">
+      <div class="grouped-label">Credential Access</div>
+      <div class="grouped-bars">
+        <div class="g-bar-wrap"><div class="g-bar" style="width:2.1%;background:#4f98a3"></div><span class="g-val">5</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:6.3%;background:#da7101"></div><span class="g-val">15</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:8.0%;background:#a86fdf"></div><span class="g-val">19</span></div>
+      </div>
+    </div>
+    <div class="grouped-row">
+      <div class="grouped-label">Discovery</div>
+      <div class="grouped-bars">
+        <div class="g-bar-wrap"><div class="g-bar" style="width:0.0%;background:#4f98a3"></div><span class="g-val">0</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:3.4%;background:#da7101"></div><span class="g-val">8</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:6.8%;background:#a86fdf"></div><span class="g-val">16</span></div>
+      </div>
+    </div>
+    <div class="grouped-row">
+      <div class="grouped-label">Lateral Movement</div>
+      <div class="grouped-bars">
+        <div class="g-bar-wrap"><div class="g-bar" style="width:0.0%;background:#4f98a3"></div><span class="g-val">0</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:0.4%;background:#da7101"></div><span class="g-val">1</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:2.1%;background:#a86fdf"></div><span class="g-val">5</span></div>
+      </div>
+    </div>
+    <div class="grouped-row">
+      <div class="grouped-label">Collection</div>
+      <div class="grouped-bars">
+        <div class="g-bar-wrap"><div class="g-bar" style="width:0.0%;background:#4f98a3"></div><span class="g-val">0</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:11.4%;background:#da7101"></div><span class="g-val">27</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:9.3%;background:#a86fdf"></div><span class="g-val">22</span></div>
+      </div>
+    </div>
+    <div class="grouped-row">
+      <div class="grouped-label">Command and Control</div>
+      <div class="grouped-bars">
+        <div class="g-bar-wrap"><div class="g-bar" style="width:0.0%;background:#4f98a3"></div><span class="g-val">0</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:10.5%;background:#da7101"></div><span class="g-val">25</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:7.6%;background:#a86fdf"></div><span class="g-val">18</span></div>
+      </div>
+    </div>
+    <div class="grouped-row">
+      <div class="grouped-label">Exfiltration</div>
+      <div class="grouped-bars">
+        <div class="g-bar-wrap"><div class="g-bar" style="width:0.0%;background:#4f98a3"></div><span class="g-val">0</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:0.8%;background:#da7101"></div><span class="g-val">2</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:5.9%;background:#a86fdf"></div><span class="g-val">14</span></div>
+      </div>
+    </div>
+    <div class="grouped-row">
+      <div class="grouped-label">Impact</div>
+      <div class="grouped-bars">
+        <div class="g-bar-wrap"><div class="g-bar" style="width:0.0%;background:#4f98a3"></div><span class="g-val">0</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:8.0%;background:#da7101"></div><span class="g-val">19</span></div>
+        <div class="g-bar-wrap"><div class="g-bar" style="width:14.8%;background:#a86fdf"></div><span class="g-val">35</span></div>
+      </div>
+    </div></div></div>
+</div>
+
+<!-- PAGE: Heatmap -->
+<div id="p-heatmap" class="page">
+  <div class="sec-title">Co-occurrence Heatmap — Exploitation → Primary Impact</div>
+  <div class="sec-sub">Which exploitation tactic most commonly leads to which primary impact? Darker/higher numbers = more CVEs follow that path.</div>
+  <div class="callout"><strong>Strongest signal:</strong> Initial Access → Execution has 142 CVEs — by far the most common pattern. An attacker exploits a CVE to get in, then immediately runs malicious code. All other paths are far less common.</div>
+  <div class="card"><div style='overflow-x:auto'><table class='hm-table'><thead><tr><th class='hm-corner'>Exploit →<br>↓ Primary</th><th class='hm-head'>Execution</th><th class='hm-head'>Privilege Escalation</th><th class='hm-head'>Defense Evasion</th><th class='hm-head'>Collection</th><th class='hm-head'>Command and Control</th><th class='hm-head'>Persistence</th><th class='hm-head'>Impact</th><th class='hm-head'>Credential Access</th><th class='hm-head'>Initial Access</th><th class='hm-head'>Lateral Movement</th></tr></thead><tbody><tr><td class='hm-row-label'>Reconnaissance</td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:rgba(79,152,163,0.11);color:#4f98a3'>1</td><td class='hm-cell' style='background:transparent;color:#666'></td></tr><tr><td class='hm-row-label'>Initial Access</td><td class='hm-cell' style='background:rgba(79,152,163,0.95);color:#fff'>142</td><td class='hm-cell' style='background:rgba(79,152,163,0.27);color:#4f98a3'>28</td><td class='hm-cell' style='background:rgba(79,152,163,0.21);color:#4f98a3'>18</td><td class='hm-cell' style='background:rgba(79,152,163,0.19);color:#4f98a3'>15</td><td class='hm-cell' style='background:rgba(79,152,163,0.18);color:#4f98a3'>14</td><td class='hm-cell' style='background:rgba(79,152,163,0.17);color:#4f98a3'>12</td><td class='hm-cell' style='background:rgba(79,152,163,0.17);color:#4f98a3'>12</td><td class='hm-cell' style='background:rgba(79,152,163,0.15);color:#4f98a3'>8</td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td></tr><tr><td class='hm-row-label'>Execution</td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:rgba(79,152,163,0.24);color:#4f98a3'>24</td><td class='hm-cell' style='background:rgba(79,152,163,0.18);color:#4f98a3'>14</td><td class='hm-cell' style='background:rgba(79,152,163,0.15);color:#4f98a3'>8</td><td class='hm-cell' style='background:rgba(79,152,163,0.14);color:#4f98a3'>7</td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:rgba(79,152,163,0.16);color:#4f98a3'>10</td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td></tr><tr><td class='hm-row-label'>Persistence</td><td class='hm-cell' style='background:rgba(79,152,163,0.2);color:#4f98a3'>16</td><td class='hm-cell' style='background:rgba(79,152,163,0.14);color:#4f98a3'>7</td><td class='hm-cell' style='background:rgba(79,152,163,0.15);color:#4f98a3'>8</td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td></tr><tr><td class='hm-row-label'>Privilege Escalation</td><td class='hm-cell' style='background:rgba(79,152,163,0.3);color:#4f98a3'>34</td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:rgba(79,152,163,0.2);color:#4f98a3'>17</td><td class='hm-cell' style='background:rgba(79,152,163,0.13);color:#4f98a3'>5</td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:rgba(79,152,163,0.14);color:#4f98a3'>6</td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td></tr><tr><td class='hm-row-label'>Defense Evasion</td><td class='hm-cell' style='background:rgba(79,152,163,0.23);color:#4f98a3'>22</td><td class='hm-cell' style='background:rgba(79,152,163,0.19);color:#4f98a3'>15</td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:rgba(79,152,163,0.12);color:#4f98a3'>4</td><td class='hm-cell' style='background:rgba(79,152,163,0.12);color:#4f98a3'>4</td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td></tr><tr><td class='hm-row-label'>Credential Access</td><td class='hm-cell' style='background:rgba(79,152,163,0.11);color:#4f98a3'>2</td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:rgba(79,152,163,0.11);color:#4f98a3'>1</td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:transparent;color:#666'></td><td class='hm-cell' style='background:rgba(79,152,163,0.11);color:#4f98a3'>1</td></tr></tbody></table></div></div>
+</div>
+
+<!-- PAGE: Techniques -->
+<div id="p-techniques" class="page">
+  <div class="sec-title">Top ATT&CK Techniques per Mapping Type</div>
+  <div class="sec-sub">Specific techniques (the sub-level of tactics) most commonly mapped across KEV CVEs.</div>
+  <div class="grid3">
+    <div class="card"><div class="card-title" style="color:#4f98a3">Top Exploitation Techniques</div><table class='tech-table'><thead><tr><th>ID</th><th>Technique</th><th>Count</th></tr></thead><tbody>
+      <tr>
+        <td class="tech-id" style="color:#4f98a3">T1190</td>
+        <td class="tech-name">Exploit Public-Facing Application</td>
+        <td class="tech-count">154
+          <span class="mini-bar" style="width:60px;background:#4f98a3"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#4f98a3">T1068</td>
+        <td class="tech-name">Exploitation for Privilege Escalation</td>
+        <td class="tech-count">40
+          <span class="mini-bar" style="width:15px;background:#4f98a3"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#4f98a3">T1078</td>
+        <td class="tech-name">Valid Accounts</td>
+        <td class="tech-count">34
+          <span class="mini-bar" style="width:13px;background:#4f98a3"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#4f98a3">T1203</td>
+        <td class="tech-name">Exploitation for Client Execution</td>
+        <td class="tech-count">32
+          <span class="mini-bar" style="width:12px;background:#4f98a3"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#4f98a3">T1204.002</td>
+        <td class="tech-name">Malicious File</td>
+        <td class="tech-count">31
+          <span class="mini-bar" style="width:12px;background:#4f98a3"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#4f98a3">T1059</td>
+        <td class="tech-name">Command and Scripting Interpreter</td>
+        <td class="tech-count">28
+          <span class="mini-bar" style="width:10px;background:#4f98a3"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#4f98a3">T1190</td>
+        <td class="tech-name">Path Traversal / File Inclusion</td>
+        <td class="tech-count">18
+          <span class="mini-bar" style="width:7px;background:#4f98a3"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#4f98a3">T1566</td>
+        <td class="tech-name">Phishing</td>
+        <td class="tech-count">15
+          <span class="mini-bar" style="width:5px;background:#4f98a3"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#4f98a3">T1548</td>
+        <td class="tech-name">Abuse Elevation Control Mechanism</td>
+        <td class="tech-count">12
+          <span class="mini-bar" style="width:4px;background:#4f98a3"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#4f98a3">T1055</td>
+        <td class="tech-name">Process Injection</td>
+        <td class="tech-count">10
+          <span class="mini-bar" style="width:3px;background:#4f98a3"></span>
+        </td>
+      </tr></tbody></table></div>
+    <div class="card"><div class="card-title" style="color:#da7101">Top Primary Impact Techniques</div><table class='tech-table'><thead><tr><th>ID</th><th>Technique</th><th>Count</th></tr></thead><tbody>
+      <tr>
+        <td class="tech-id" style="color:#da7101">T1059</td>
+        <td class="tech-name">Command and Scripting Interpreter</td>
+        <td class="tech-count">89
+          <span class="mini-bar" style="width:60px;background:#da7101"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#da7101">T1068</td>
+        <td class="tech-name">Exploitation for Privilege Escalation</td>
+        <td class="tech-count">40
+          <span class="mini-bar" style="width:26px;background:#da7101"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#da7101">T1055</td>
+        <td class="tech-name">Process Injection</td>
+        <td class="tech-count">33
+          <span class="mini-bar" style="width:22px;background:#da7101"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#da7101">T1204.002</td>
+        <td class="tech-name">Malicious File</td>
+        <td class="tech-count">31
+          <span class="mini-bar" style="width:20px;background:#da7101"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#da7101">T1486</td>
+        <td class="tech-name">Data Encrypted for Impact</td>
+        <td class="tech-count">19
+          <span class="mini-bar" style="width:12px;background:#da7101"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#da7101">T1071</td>
+        <td class="tech-name">Application Layer Protocol</td>
+        <td class="tech-count">17
+          <span class="mini-bar" style="width:11px;background:#da7101"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#da7101">T1105</td>
+        <td class="tech-name">Ingress Tool Transfer</td>
+        <td class="tech-count">16
+          <span class="mini-bar" style="width:10px;background:#da7101"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#da7101">T1003</td>
+        <td class="tech-name">OS Credential Dumping</td>
+        <td class="tech-count">12
+          <span class="mini-bar" style="width:8px;background:#da7101"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#da7101">T1543</td>
+        <td class="tech-name">Create or Modify System Process</td>
+        <td class="tech-count">11
+          <span class="mini-bar" style="width:7px;background:#da7101"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#da7101">T1560</td>
+        <td class="tech-name">Archive Collected Data</td>
+        <td class="tech-count">10
+          <span class="mini-bar" style="width:6px;background:#da7101"></span>
+        </td>
+      </tr></tbody></table></div>
+    <div class="card"><div class="card-title" style="color:#a86fdf">Top Secondary Impact Techniques</div><table class='tech-table'><thead><tr><th>ID</th><th>Technique</th><th>Count</th></tr></thead><tbody>
+      <tr>
+        <td class="tech-id" style="color:#a86fdf">T1486</td>
+        <td class="tech-name">Data Encrypted for Impact</td>
+        <td class="tech-count">22
+          <span class="mini-bar" style="width:60px;background:#a86fdf"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#a86fdf">T1059</td>
+        <td class="tech-name">Command and Scripting Interpreter</td>
+        <td class="tech-count">19
+          <span class="mini-bar" style="width:51px;background:#a86fdf"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#a86fdf">T1027</td>
+        <td class="tech-name">Obfuscated Files or Information</td>
+        <td class="tech-count">17
+          <span class="mini-bar" style="width:46px;background:#a86fdf"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#a86fdf">T1003</td>
+        <td class="tech-name">OS Credential Dumping</td>
+        <td class="tech-count">15
+          <span class="mini-bar" style="width:40px;background:#a86fdf"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#a86fdf">T1082</td>
+        <td class="tech-name">System Information Discovery</td>
+        <td class="tech-count">14
+          <span class="mini-bar" style="width:38px;background:#a86fdf"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#a86fdf">T1071</td>
+        <td class="tech-name">Application Layer Protocol</td>
+        <td class="tech-count">13
+          <span class="mini-bar" style="width:35px;background:#a86fdf"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#a86fdf">T1105</td>
+        <td class="tech-name">Ingress Tool Transfer</td>
+        <td class="tech-count">12
+          <span class="mini-bar" style="width:32px;background:#a86fdf"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#a86fdf">T1562</td>
+        <td class="tech-name">Impair Defenses</td>
+        <td class="tech-count">11
+          <span class="mini-bar" style="width:30px;background:#a86fdf"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#a86fdf">T1041</td>
+        <td class="tech-name">Exfiltration Over C2 Channel</td>
+        <td class="tech-count">10
+          <span class="mini-bar" style="width:27px;background:#a86fdf"></span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tech-id" style="color:#a86fdf">T1490</td>
+        <td class="tech-name">Inhibit System Recovery</td>
+        <td class="tech-count">9
+          <span class="mini-bar" style="width:24px;background:#a86fdf"></span>
+        </td>
+      </tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- PAGE: Timeline -->
+<div id="p-timeline" class="page">
+  <div class="sec-title">KEV CVEs Over Time</div>
+  <div class="sec-sub">"Date Added" = when CISA confirmed active exploitation, not when the CVE was published or discovered.</div>
+  <div class="callout warn">
+    <strong>⚠️ 2022 spike is an anomaly:</strong> CISA launched KEV in late 2021 and backfilled years of previously known exploited CVEs in early 2022.
+    That spike (555 CVEs) reflects historical additions, not a real surge in new exploits that year.
+    2023–2026 data is more representative of the "true" annual rate of confirmed exploitation.
+  </div>
+  <div class="callout">
+    <strong>How to use this in your analysis:</strong> If you say "in 2024, 186 CVEs were confirmed exploited by CISA," you are correctly stating 
+    that CISA added 186 KEV entries that year — meaning 186 vulnerabilities had confirmed real-world exploitation confirmed that year.
+  </div>
+  <div class="card"><div class="chart-block">
+      <div class="chart-title">KEV CVEs Added Per Year</div>
+      <div class="chart-sub">Date added = when CISA confirmed active exploitation, not when CVE was published</div>
+      <div class="bar-chart">
+        <div class="bar-row">
+          <div class="bar-label">2021</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:56.0%;background:#4f98a3;"></div>
+            <span class="bar-val">311</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">2022 (backfill)</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:100.0%;background:#da7101;"></div>
+            <span class="bar-val">555</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">2023</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:33.7%;background:#4f98a3;"></div>
+            <span class="bar-val">187</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">2024</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:33.5%;background:#4f98a3;"></div>
+            <span class="bar-val">186</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">2025</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:44.1%;background:#4f98a3;"></div>
+            <span class="bar-val">245</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">2026 (partial)</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:9.9%;background:#4f98a3;"></div>
+            <span class="bar-val">55</span>
+          </div>
+        </div></div>
+    </div></div>
+</div>
+
+<!-- PAGE: Credential Access -->
+<div id="p-credential" class="page">
+  <div class="sec-title">Credential Access — Deep Dive</div>
+  <div class="sec-sub">Is Credential Access (TA0006) an inside or outside tactic? Where in the attack chain does it appear?</div>
+  <div class="callout">
+    <strong>Answer: Always inside.</strong> Credential Access requires the attacker to already have <em>some</em> presence in the system.
+    They cannot dump passwords from memory (LSASS), steal Kerberos tickets, or read credential stores without first getting in.
+    <br><br>
+    <strong>The attack chain for credential theft:</strong><br>
+    1️⃣ <strong>Initial Access</strong> — attacker gets in (via exploited CVE, phishing, etc.)<br>
+    2️⃣ <strong>Execution</strong> — attacker runs code to establish a foothold<br>
+    3️⃣ <strong>Credential Access</strong> — attacker steals real usernames/passwords/tokens<br>
+    4️⃣ Now they <em>look like a legitimate user</em> — detection becomes very hard<br>
+    5️⃣ <strong>Lateral Movement / Impact</strong> — they move through the network or cause damage
+  </div>
+  <div class="callout warn">
+    <strong>Why credential theft is so dangerous:</strong> Once an attacker has valid credentials, their activity blends in with normal user behavior.
+    Security tools that look for "unusual" behavior may miss this completely.
+  </div>
+  <div class="grid2">
+    <div class="card">
+    <div class="chart-block">
+      <div class="chart-title">Credential Access — Where in Attack Chain?</div>
+      <div class='chart-sub'>Low as exploitation (requires prior access), higher as downstream behavior — confirms it is an INSIDE tactic</div>
+      <div class="bar-chart">
+        <div class="bar-row">
+          <div class="bar-label">As Exploitation Technique</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:26.3%;background:#5591c7aa;"></div>
+            <span class="bar-val">5</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">As Primary Impact</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:78.9%;background:#5591c7;"></div>
+            <span class="bar-val">15</span>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">As Secondary Impact</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:100.0%;background:#5591c7dd;"></div>
+            <span class="bar-val">19</span>
+          </div>
+        </div></div>
+    </div></div>
+    <div class="card">
+      <div class="card-title">Credential Access Techniques in KEV</div>
+      <table class="tech-table">
+        <thead><tr><th>ID</th><th>Technique</th><th>CVEs</th></tr></thead>
+        <tbody>
+          <tr><td class="tech-id" style="color:#5591c7">T1003</td><td>OS Credential Dumping</td><td>12<span class="mini-bar" style="width:60px;background:#5591c7"></span></td></tr>
+          <tr><td class="tech-id" style="color:#5591c7">T1003.001</td><td>LSASS Memory Dumping</td><td>5<span class="mini-bar" style="width:25px;background:#5591c7"></span></td></tr>
+          <tr><td class="tech-id" style="color:#5591c7">T1110</td><td>Brute Force</td><td>8<span class="mini-bar" style="width:40px;background:#5591c7"></span></td></tr>
+          <tr><td class="tech-id" style="color:#5591c7">T1552</td><td>Unsecured Credentials</td><td>6<span class="mini-bar" style="width:30px;background:#5591c7"></span></td></tr>
+          <tr><td class="tech-id" style="color:#5591c7">T1558</td><td>Steal/Forge Kerberos Tickets</td><td>4<span class="mini-bar" style="width:20px;background:#5591c7"></span></td></tr>
+          <tr><td class="tech-id" style="color:#5591c7">T1539</td><td>Steal Web Session Cookie</td><td>3<span class="mini-bar" style="width:15px;background:#5591c7"></span></td></tr>
+          <tr><td class="tech-id" style="color:#5591c7">T1555</td><td>Credentials from Password Stores</td><td>3<span class="mini-bar" style="width:15px;background:#5591c7"></span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(pageId, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

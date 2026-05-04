@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KEV ATT&CK Parallel Coordinates</title>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+  :root, [data-theme="light"] {
+    --color-bg: #f7f6f2; --color-surface: #f9f8f5; --color-surface-2: #fbfbf9;
+    --color-border: #d4d1ca; --color-text: #28251d; --color-text-muted: #7a7974;
+    --color-text-faint: #bab9b4; --color-primary: #01696f; --color-divider: #dcd9d5;
+    --shadow-md: 0 4px 12px oklch(0.2 0.01 80 / 0.08);
+    --font-body: 'Satoshi', system-ui, sans-serif;
+    --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+    --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+    --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+    --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
+    --text-xl: clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
+    --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem; --space-6: 1.5rem;
+    --space-8: 2rem; --space-12: 3rem; --radius-md: 0.5rem; --radius-lg: 0.75rem;
+  }
+  [data-theme="dark"] {
+    --color-bg: #171614; --color-surface: #1c1b19; --color-surface-2: #201f1d;
+    --color-border: #393836; --color-text: #cdccca; --color-text-muted: #797876;
+    --color-text-faint: #5a5957; --color-primary: #4f98a3; --color-divider: #262523;
+    --shadow-md: 0 4px 12px oklch(0 0 0 / 0.3);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-body); background: var(--color-bg);
+    color: var(--color-text); min-height: 100dvh; padding: var(--space-8) var(--space-4);
+  }
+  .header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    max-width: 1400px; margin: 0 auto var(--space-8);
+  }
+  .header-text h1 { font-size: var(--text-xl); font-weight: 700; margin-bottom: var(--space-2); }
+  .header-text p { font-size: var(--text-sm); color: var(--color-text-muted); max-width: 60ch; }
+  .toggle-btn {
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: var(--space-2) var(--space-3);
+    cursor: pointer; color: var(--color-text); font-size: var(--text-sm);
+    transition: background 180ms ease; white-space: nowrap;
+  }
+  .toggle-btn:hover { background: var(--color-surface-2); }
+  .legend {
+    max-width: 1400px; margin: 0 auto var(--space-6);
+    display: flex; gap: var(--space-4); flex-wrap: wrap; align-items: center;
+  }
+  .legend-item { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--color-text-muted); }
+  .legend-line { width: 32px; height: 3px; border-radius: 2px; }
+  .chart-container {
+    max-width: 1400px; margin: 0 auto;
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-md);
+    padding: var(--space-6); overflow-x: auto;
+  }
+  svg text { font-family: var(--font-body); }
+  .axis-label { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+  .tactic-label { font-size: 11px; cursor: default; }
+  .tactic-label:hover { opacity: 0.7; }
+  .info-bar {
+    max-width: 1400px; margin: var(--space-4) auto 0;
+    font-size: var(--text-xs); color: var(--color-text-faint); text-align: center;
+  }
+  .filter-row {
+    max-width: 1400px; margin: 0 auto var(--space-4);
+    display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center;
+  }
+  .filter-row label { font-size: var(--text-xs); color: var(--color-text-muted); }
+  .filter-row select {
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: var(--space-2) var(--space-3);
+    color: var(--color-text); font-size: var(--text-xs); font-family: var(--font-body);
+    cursor: pointer;
+  }
+  .reset-btn {
+    background: transparent; border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: var(--space-2) var(--space-3);
+    color: var(--color-text-muted); font-size: var(--text-xs); cursor: pointer;
+    font-family: var(--font-body);
+  }
+  .reset-btn:hover { background: var(--color-surface); color: var(--color-text); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-text">
+    <h1>KEV → ATT&CK Parallel Coordinates</h1>
+    <p>Attack flow from <strong>Exploitation Technique</strong> → <strong>Primary Impact</strong> → <strong>Secondary Impact</strong>. 
+    Each line represents CVEs flowing through ATT&CK tactics. Line thickness = number of CVEs.</p>
+  </div>
+  <button class="toggle-btn" data-theme-toggle aria-label="Toggle dark mode">☀️ Light</button>
+</div>
+
+<div class="filter-row">
+  <label>Filter by starting tactic:</label>
+  <select id="filterExploit">
+    <option value="">All Exploitation Tactics</option>
+  </select>
+  <label>Filter by primary impact:</label>
+  <select id="filterPrimary">
+    <option value="">All Primary Tactics</option>
+  </select>
+  <button class="reset-btn" onclick="resetFilters()">Reset</button>
+</div>
+
+<div class="legend">
+  <span style="font-size:var(--text-xs); color:var(--color-text-muted); font-weight:600;">Line thickness = CVE count &nbsp;|&nbsp; Color = exploitation tactic</span>
+  <div class="legend-item"><div class="legend-line" style="background:#4f98a3"></div> Initial Access</div>
+  <div class="legend-item"><div class="legend-line" style="background:#da7101"></div> Execution</div>
+  <div class="legend-item"><div class="legend-line" style="background:#d19900"></div> Persistence</div>
+  <div class="legend-item"><div class="legend-line" style="background:#a86fdf"></div> Privilege Escalation</div>
+  <div class="legend-item"><div class="legend-line" style="background:#6daa45"></div> Defense Evasion</div>
+  <div class="legend-item"><div class="legend-line" style="background:#5591c7"></div> Credential Access</div>
+  <div class="legend-item"><div class="legend-line" style="background:#dd6974"></div> Other</div>
+</div>
+
+<div class="chart-container">
+  <svg id="chart" width="1300" height="720"></svg>
+</div>
+<div class="info-bar" id="infoBar">Hover over a flow line to see details</div>
+
+<script>
+const FLOWS = [{"from": "Execution", "mid": "Defense Evasion", "to": "Execution", "count": 1}, {"from": "Execution", "mid": "Command and Control", "to": "Exfiltration", "count": 1}, {"from": "Execution", "mid": "Command and Control", "to": "Command and Control", "count": 1}, {"from": "Execution", "mid": "Command and Control", "to": "Privilege Escalation", "count": 1}, {"from": "Execution", "mid": "Command and Control", "to": "Defense Evasion", "count": 3}, {"from": "Initial Access", "mid": "Command and Control", "to": "Impact", "count": 2}, {"from": "Execution", "mid": "Command and Control", "to": "Collection", "count": 2}, {"from": "Initial Access", "mid": "Discovery", "to": "Reconnaissance", "count": 1}, {"from": "Initial Access", "mid": "Discovery", "to": "Credential Access", "count": 1}, {"from": "Initial Access", "mid": "Execution", "to": "Collection", "count": 8}, {"from": "Persistence", "mid": "Execution", "to": "Exfiltration", "count": 2}, {"from": "Privilege Escalation", "mid": "Execution", "to": "Exfiltration", "count": 2}, {"from": "Defense Evasion", "mid": "Execution", "to": "Exfiltration", "count": 2}, {"from": "Initial Access", "mid": "Execution", "to": "Impact", "count": 14}, {"from": "Initial Access", "mid": "Exfiltration", "to": "Credential Access", "count": 1}, {"from": "Initial Access", "mid": "Resource Development", "to": "Credential Access", "count": 1}, {"from": "Initial Access", "mid": "Execution", "to": "Discovery", "count": 10}, {"from": "Initial Access", "mid": "Execution", "to": "Initial Access", "count": 4}, {"from": "Initial Access", "mid": "Execution", "to": "Persistence", "count": 7}, {"from": "Initial Access", "mid": "Execution", "to": "Defense Evasion", "count": 11}, {"from": "Initial Access", "mid": "Execution", "to": "Privilege Escalation", "count": 7}, {"from": "Initial Access", "mid": "Execution", "to": "Credential Access", "count": 8}, {"from": "Initial Access", "mid": "Discovery", "to": "Discovery", "count": 1}, {"from": "Initial Access", "mid": "Discovery", "to": "Collection", "count": 1}, {"from": "Credential Access", "mid": "Lateral Movement", "to": "Initial Access", "count": 1}, {"from": "Credential Access", "mid": "Lateral Movement", "to": "Impact", "count": 1}, {"from": "Credential Access", "mid": "Privilege Escalation", "to": "Initial Access", "count": 1}, {"from": "Credential Access", "mid": "Privilege Escalation", "to": "Impact", "count": 1}, {"from": "Initial Access", "mid": "Lateral Movement", "to": "Initial Access", "count": 1}, {"from": "Initial Access", "mid": "Lateral Movement", "to": "Impact", "count": 1}, {"from": "Initial Access", "mid": "Privilege Escalation", "to": "Initial Access", "count": 2}, {"from": "Initial Access", "mid": "Privilege Escalation", "to": "Impact", "count": 2}, {"from": "Initial Access", "mid": "Impact", "to": "Impact", "count": 1}, {"from": "Execution", "mid": "Privilege Escalation", "to": "Collection", "count": 1}, {"from": "Initial Access", "mid": "Execution", "to": "Command and Control", "count": 10}, {"from": "Initial Access", "mid": "Privilege Escalation", "to": "Command and Control", "count": 2}, {"from": "Initial Access", "mid": "Privilege Escalation", "to": "Discovery", "count": 2}, {"from": "Initial Access", "mid": "Privilege Escalation", "to": "Execution", "count": 9}, {"from": "Initial Access", "mid": "Privilege Escalation", "to": "Defense Evasion", "count": 3}, {"from": "Initial Access", "mid": "Command and Control", "to": "Credential Access", "count": 1}, {"from": "Initial Access", "mid": "Command and Control", "to": "Discovery", "count": 1}, {"from": "Persistence", "mid": "Privilege Escalation", "to": "Execution", "count": 7}, {"from": "Defense Evasion", "mid": "Privilege Escalation", "to": "Execution", "count": 7}, {"from": "Privilege Escalation", "mid": "Privilege Escalation", "to": "Execution", "count": 7}, {"from": "Initial Access", "mid": "Privilege Escalation", "to": "Persistence", "count": 2}, {"from": "Initial Access", "mid": "Privilege Escalation", "to": "Privilege Escalation", "count": 2}, {"from": "Initial Access", "mid": "Defense Evasion", "to": "Initial Access", "count": 1}, {"from": "Initial Access", "mid": "Defense Evasion", "to": "Persistence", "count": 1}, {"from": "Initial Access", "mid": "Defense Evasion", "to": "Defense Evasion", "count": 1}, {"from": "Initial Access", "mid": "Defense Evasion", "to": "Privilege Escalation", "count": 1}, {"from": "Initial Access", "mid": "Defense Evasion", "to": "Execution", "count": 1}, {"from": "Initial Access", "mid": "Execution", "to": "Exfiltration", "count": 4}, {"from": "Persistence", "mid": "Execution", "to": "Defense Evasion", "count": 1}, {"from": "Defense Evasion", "mid": "Execution", "to": "Defense Evasion", "count": 1}, {"from": "Privilege Escalation", "mid": "Execution", "to": "Defense Evasion", "count": 1}, {"from": "Initial Access", "mid": "Execution", "to": "Execution", "count": 4}, {"from": "Persistence", "mid": "Privilege Escalation", "to": "Persistence", "count": 1}, {"from": "Persistence", "mid": "Privilege Escalation", "to": "Privilege Escalation", "count": 1}, {"from": "Persistence", "mid": "Privilege Escalation", "to": "Defense Evasion", "count": 1}, {"from": "Defense Evasion", "mid": "Privilege Escalation", "to": "Persistence", "count": 1}, {"from": "Defense Evasion", "mid": "Privilege Escalation", "to": "Privilege Escalation", "count": 1}, {"from": "Defense Evasion", "mid": "Privilege Escalation", "to": "Defense Evasion", "count": 2}, {"from": "Privilege Escalation", "mid": "Privilege Escalation", "to": "Persistence", "count": 1}, {"from": "Privilege Escalation", "mid": "Privilege Escalation", "to": "Privilege Escalation", "count": 1}, {"from": "Privilege Escalation", "mid": "Privilege Escalation", "to": "Defense Evasion", "count": 2}, {"from": "Initial Access", "mid": "Persistence", "to": "Command and Control", "count": 1}, {"from": "Initial Access", "mid": "Defense Evasion", "to": "Command and Control", "count": 1}, {"from": "Privilege Escalation", "mid": "Persistence", "to": "Defense Evasion", "count": 1}, {"from": "Defense Evasion", "mid": "Persistence", "to": "Defense Evasion", "count": 1}, {"from": "Execution", "mid": "Impact", "to": "Exfiltration", "count": 1}, {"from": "Execution", "mid": "Impact", "to": "Defense Evasion", "count": 1}, {"from": "Execution", "mid": "Impact", "to": "Impact", "count": 3}, {"from": "Persistence", "mid": "Execution", "to": "Command and Control", "count": 1}, {"from": "Defense Evasion", "mid": "Execution", "to": "Command and Control", "count": 1}, {"from": "Privilege Escalation", "mid": "Execution", "to": "Command and Control", "count": 1}, {"from": "Initial Access", "mid": "Discovery", "to": "Command and Control", "count": 1}, {"from": "Initial Access", "mid": "Execution", "to": "Lateral Movement", "count": 1}, {"from": "Initial Access", "mid": "Privilege Escalation", "to": "Lateral Movement", "count": 1}, {"from": "Initial Access", "mid": "Privilege Escalation", "to": "Credential Access", "count": 3}, {"from": "Persistence", "mid": "Privilege Escalation", "to": "Impact", "count": 1}, {"from": "Persistence", "mid": "Privilege Escalation", "to": "Lateral Movement", "count": 1}, {"from": "Persistence", "mid": "Privilege Escalation", "to": "Credential Access", "count": 1}, {"from": "Defense Evasion", "mid": "Privilege Escalation", "to": "Impact", "count": 1}, {"from": "Defense Evasion", "mid": "Privilege Escalation", "to": "Lateral Movement", "count": 1}, {"from": "Defense Evasion", "mid": "Privilege Escalation", "to": "Credential Access", "count": 1}, {"from": "Privilege Escalation", "mid": "Privilege Escalation", "to": "Impact", "count": 2}, {"from": "Privilege Escalation", "mid": "Privilege Escalation", "to": "Lateral Movement", "count": 2}, {"from": "Privilege Escalation", "mid": "Privilege Escalation", "to": "Credential Access", "count": 1}, {"from": "Initial Access", "mid": "Execution", "to": "Resource Development", "count": 2}, {"from": "Execution", "mid": "Execution", "to": "Exfiltration", "count": 2}, {"from": "Execution", "mid": "Execution", "to": "Defense Evasion", "count": 1}, {"from": "Execution", "mid": "Execution", "to": "Execution", "count": 1}, {"from": "Execution", "mid": "Execution", "to": "Persistence", "count": 1}, {"from": "Execution", "mid": "Execution", "to": "Privilege Escalation", "count": 1}, {"from": "Execution", "mid": "Execution", "to": "Impact", "count": 1}, {"from": "Execution", "mid": "Execution", "to": "Collection", "count": 1}, {"from": "Execution", "mid": "Execution", "to": "Command and Control", "count": 1}, {"from": "Privilege Escalation", "mid": "Execution", "to": "Persistence", "count": 1}, {"from": "Privilege Escalation", "mid": "Execution", "to": "Privilege Escalation", "count": 1}, {"from": "Defense Evasion", "mid": "Execution", "to": "Persistence", "count": 1}, {"from": "Defense Evasion", "mid": "Execution", "to": "Privilege Escalation", "count": 1}, {"from": "Initial Access", "mid": "Initial Access", "to": "Credential Access", "count": 2}, {"from": "Initial Access", "mid": "Persistence", "to": "Credential Access", "count": 2}, {"from": "Initial Access", "mid": "Defense Evasion", "to": "Credential Access", "count": 2}, {"from": "Initial Access", "mid": "Privilege Escalation", "to": "Resource Development", "count": 1}, {"from": "Persistence", "mid": "Privilege Escalation", "to": "Resource Development", "count": 1}, {"from": "Defense Evasion", "mid": "Privilege Escalation", "to": "Resource Development", "count": 1}, {"from": "Privilege Escalation", "mid": "Privilege Escalation", "to": "Resource Development", "count": 1}, {"from": "Initial Access", "mid": "Collection", "to": "Credential Access", "count": 1}, {"from": "Initial Access", "mid": "Collection", "to": "Exfiltration", "count": 1}, {"from": "Privilege Escalation", "mid": "Credential Access", "to": "Lateral Movement", "count": 1}, {"from": "Privilege Escalation", "mid": "Initial Access", "to": "Lateral Movement", "count": 1}, {"from": "Privilege Escalation", "mid": "Persistence", "to": "Lateral Movement", "count": 1}, {"from": "Privilege Escalation", "mid": "Defense Evasion", "to": "Lateral Movement", "count": 1}, {"from": "Initial Access", "mid": "Credential Access", "to": "Execution", "count": 1}, {"from": "Reconnaissance", "mid": "Privilege Escalation", "to": "Discovery", "count": 1}, {"from": "Reconnaissance", "mid": "Defense Evasion", "to": "Discovery", "count": 1}, {"from": "Reconnaissance", "mid": "Credential Access", "to": "Discovery", "count": 1}, {"from": "Initial Access", "mid": "Defense Evasion", "to": "Discovery", "count": 1}, {"from": "Initial Access", "mid": "Credential Access", "to": "Discovery", "count": 1}, {"from": "Persistence", "mid": "Execution", "to": "Execution", "count": 1}, {"from": "Defense Evasion", "mid": "Execution", "to": "Execution", "count": 1}, {"from": "Privilege Escalation", "mid": "Execution", "to": "Execution", "count": 1}, {"from": "Privilege Escalation", "mid": "Defense Evasion", "to": "Impact", "count": 1}, {"from": "Execution", "mid": "Privilege Escalation", "to": "Impact", "count": 1}, {"from": "Execution", "mid": "Defense Evasion", "to": "Impact", "count": 1}, {"from": "Privilege Escalation", "mid": "Execution", "to": "Impact", "count": 2}, {"from": "Defense Evasion", "mid": "Execution", "to": "Impact", "count": 1}, {"from": "Execution", "mid": "Command and Control", "to": "Execution", "count": 2}, {"from": "Privilege Escalation", "mid": "Execution", "to": "Resource Development", "count": 1}, {"from": "Execution", "mid": "Impact", "to": "Execution", "count": 1}];
+const TACTIC_ORDER = ["Reconnaissance", "Resource Development", "Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Command and Control", "Exfiltration", "Impact"];
+
+const TACTIC_COLORS = {
+  "Reconnaissance":       "#9b59b6",
+  "Resource Development": "#9b59b6",
+  "Initial Access":       "#4f98a3",
+  "Execution":            "#da7101",
+  "Persistence":          "#d19900",
+  "Privilege Escalation": "#a86fdf",
+  "Defense Evasion":      "#6daa45",
+  "Credential Access":    "#5591c7",
+  "Discovery":            "#bb653b",
+  "Lateral Movement":     "#d163a7",
+  "Collection":           "#4f8a5a",
+  "Command and Control":  "#7a39bb",
+  "Exfiltration":         "#a13544",
+  "Impact":               "#393836",
+};
+
+function getColor(tactic) {
+  return TACTIC_COLORS[tactic] || "#dd6974";
+}
+
+const svg = document.getElementById("chart");
+const W = 1300, H = 720;
+const MARGIN = { top: 60, bottom: 40, left: 180, right: 180 };
+const INNER_W = W - MARGIN.left - MARGIN.right;
+const INNER_H = H - MARGIN.top - MARGIN.bottom;
+
+// Three axis positions
+const COL_X = [MARGIN.left, MARGIN.left + INNER_W / 2, MARGIN.left + INNER_W];
+const COL_LABELS = ["Exploitation Technique", "Primary Impact", "Secondary Impact"];
+
+// Find which tactics appear in each column
+const exploit_tactics = [...new Set(FLOWS.map(f => f.from))].filter(t => TACTIC_ORDER.includes(t));
+const primary_tactics = [...new Set(FLOWS.map(f => f.mid))].filter(t => TACTIC_ORDER.includes(t));
+const secondary_tactics = [...new Set(FLOWS.map(f => f.to))].filter(t => TACTIC_ORDER.includes(t));
+
+// Sort by TACTIC_ORDER
+const sorted = (arr) => [...arr].sort((a,b) => TACTIC_ORDER.indexOf(a) - TACTIC_ORDER.indexOf(b));
+const E_TACTICS = sorted(exploit_tactics);
+const P_TACTICS = sorted(primary_tactics);
+const S_TACTICS = sorted(secondary_tactics);
+
+const allTactics = [E_TACTICS, P_TACTICS, S_TACTICS];
+
+// Y position for a tactic in a given column
+function yPos(tactics, tactic) {
+  const idx = tactics.indexOf(tactic);
+  if (idx < 0) return null;
+  const spacing = INNER_H / (tactics.length + 1);
+  return MARGIN.top + spacing * (idx + 1);
+}
+
+function isDark() {
+  return document.documentElement.getAttribute("data-theme") === "dark";
+}
+function textColor() { return isDark() ? "#cdccca" : "#28251d"; }
+function mutedColor() { return isDark() ? "#797876" : "#7a7974"; }
+function axisColor() { return isDark() ? "#393836" : "#d4d1ca"; }
+
+let activeFilters = { exploit: "", primary: "" };
+
+function draw() {
+  svg.innerHTML = "";
+  const tc = textColor(), mc = mutedColor(), ac = axisColor();
+
+  const filteredFlows = FLOWS.filter(f => {
+    if (activeFilters.exploit && f.from !== activeFilters.exploit) return false;
+    if (activeFilters.primary && f.mid !== activeFilters.primary) return false;
+    return true;
+  });
+
+  const maxCount = Math.max(...filteredFlows.map(f => f.count), 1);
+
+  // Draw bezier curves FIRST (behind axes)
+  filteredFlows.forEach(f => {
+    const x0 = COL_X[0], y0 = yPos(E_TACTICS, f.from);
+    const x1 = COL_X[1], y1 = yPos(P_TACTICS, f.mid);
+    const x2 = COL_X[2], y2 = yPos(S_TACTICS, f.to);
+    if (y0 == null || y1 == null || y2 == null) return;
+
+    const strokeW = Math.max(1, (f.count / maxCount) * 14);
+    const color = getColor(f.from);
+    const alpha = 0.15 + 0.55 * (f.count / maxCount);
+
+    // Segment 1: exploit → primary
+    const path1 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const cx1 = (x0 + x1) / 2;
+    path1.setAttribute("d", `M${x0},${y0} C${cx1},${y0} ${cx1},${y1} ${x1},${y1}`);
+    path1.setAttribute("fill", "none");
+    path1.setAttribute("stroke", color);
+    path1.setAttribute("stroke-width", strokeW);
+    path1.setAttribute("opacity", alpha);
+    path1.setAttribute("data-flow", JSON.stringify(f));
+    path1.style.transition = "opacity 0.2s";
+    path1.addEventListener("mouseenter", (e) => onHover(e, f));
+    path1.addEventListener("mouseleave", onLeave);
+    svg.appendChild(path1);
+
+    // Segment 2: primary → secondary
+    const path2 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const cx2 = (x1 + x2) / 2;
+    path2.setAttribute("d", `M${x1},${y1} C${cx2},${y1} ${cx2},${y2} ${x2},${y2}`);
+    path2.setAttribute("fill", "none");
+    path2.setAttribute("stroke", getColor(f.mid));
+    path2.setAttribute("stroke-width", strokeW);
+    path2.setAttribute("opacity", alpha * 0.9);
+    path2.style.transition = "opacity 0.2s";
+    path2.addEventListener("mouseenter", (e) => onHover(e, f));
+    path2.addEventListener("mouseleave", onLeave);
+    svg.appendChild(path2);
+  });
+
+  // Draw axes and labels
+  COL_X.forEach((cx, ci) => {
+    // Axis line
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", cx); line.setAttribute("x2", cx);
+    line.setAttribute("y1", MARGIN.top - 20); line.setAttribute("y2", H - MARGIN.bottom);
+    line.setAttribute("stroke", ac); line.setAttribute("stroke-width", 2);
+    svg.appendChild(line);
+
+    // Column header
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", cx); label.setAttribute("y", MARGIN.top - 28);
+    label.setAttribute("text-anchor", "middle");
+    label.setAttribute("fill", tc);
+    label.setAttribute("font-size", "12"); label.setAttribute("font-weight", "700");
+    label.setAttribute("font-family", "Satoshi, sans-serif");
+    label.setAttribute("letter-spacing", "0.04em");
+    label.setAttribute("text-transform", "uppercase");
+    label.textContent = COL_LABELS[ci].toUpperCase();
+    svg.appendChild(label);
+
+    // Tactic tick marks and labels
+    allTactics[ci].forEach(tactic => {
+      const y = yPos(allTactics[ci], tactic);
+      // Tick
+      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      tick.setAttribute("x1", cx - 6); tick.setAttribute("x2", cx + 6);
+      tick.setAttribute("y1", y); tick.setAttribute("y2", y);
+      tick.setAttribute("stroke", ac); tick.setAttribute("stroke-width", 1.5);
+      svg.appendChild(tick);
+
+      // Dot
+      const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      dot.setAttribute("cx", cx); dot.setAttribute("cy", y); dot.setAttribute("r", 4);
+      dot.setAttribute("fill", getColor(tactic));
+      svg.appendChild(dot);
+
+      // Label — left side for col 0 and col 2, right side for col 1
+      const tlabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      let lx, anchor;
+      if (ci === 0) { lx = cx - 14; anchor = "end"; }
+      else if (ci === 1) { lx = cx + 14; anchor = "start"; }
+      else { lx = cx + 14; anchor = "start"; }
+
+      tlabel.setAttribute("x", lx); tlabel.setAttribute("y", y + 4);
+      tlabel.setAttribute("text-anchor", anchor);
+      tlabel.setAttribute("fill", mc);
+      tlabel.setAttribute("font-size", "11");
+      tlabel.setAttribute("font-family", "Satoshi, sans-serif");
+      tlabel.textContent = tactic;
+      svg.appendChild(tlabel);
+    });
+  });
+}
+
+function onHover(e, f) {
+  document.getElementById("infoBar").textContent =
+    `${f.count} CVE${f.count > 1 ? "s" : ""}: ${f.from} → ${f.mid} → ${f.to}`;
+}
+function onLeave() {
+  document.getElementById("infoBar").textContent = "Hover over a flow line to see details";
+}
+
+// Populate filter dropdowns
+function populateFilters() {
+  const selE = document.getElementById("filterExploit");
+  const selP = document.getElementById("filterPrimary");
+  E_TACTICS.forEach(t => {
+    const o = document.createElement("option"); o.value = t; o.textContent = t;
+    selE.appendChild(o);
+  });
+  P_TACTICS.forEach(t => {
+    const o = document.createElement("option"); o.value = t; o.textContent = t;
+    selP.appendChild(o);
+  });
+  selE.addEventListener("change", e => { activeFilters.exploit = e.target.value; draw(); });
+  selP.addEventListener("change", e => { activeFilters.primary = e.target.value; draw(); });
+}
+
+function resetFilters() {
+  activeFilters = { exploit: "", primary: "" };
+  document.getElementById("filterExploit").value = "";
+  document.getElementById("filterPrimary").value = "";
+  draw();
+}
+
+// Theme toggle
+(function(){
+  const t = document.querySelector('[data-theme-toggle]');
+  const r = document.documentElement;
+  let d = 'dark';
+  r.setAttribute('data-theme', d);
+  t && t.addEventListener('click', () => {
+    d = d === 'dark' ? 'light' : 'dark';
+    r.setAttribute('data-theme', d);
+    t.textContent = d === 'dark' ? '☀️ Light' : '🌙 Dark';
+    draw();
+  });
+})();
+
+populateFilters();
+draw();
+</script>
+</body>
+</html>
